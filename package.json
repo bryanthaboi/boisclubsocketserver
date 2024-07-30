@@ -1,0 +1,27 @@
+{
+	"name": "boisclubsocketserver",
+	"version": "1.0.0",
+	"description": "A websocket server to be deployed anywhere but vercel to be used ON vercel.",
+	"main": "index.js",
+	"scripts": {
+		"start": "node index.js",
+		"test": "npx jest --detectOpenHandles --runInBand"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"dependencies": {
+		"@bugsnag/js": "^7.25.0",
+		"@bugsnag/plugin-express": "^7.25.0",
+		"dotenv": "^16.4.5",
+		"express": "^4.19.2",
+		"uuid": "^10.0.0",
+		"winston": "^3.13.1",
+		"winston-bugsnag": "^3.0.2",
+		"ws": "^8.18.0"
+	},
+	"devDependencies": {
+		"jest": "^29.7.0",
+		"axios": "^1.7.2"
+	}
+}
