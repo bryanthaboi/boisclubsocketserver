@@ -2,6 +2,8 @@
 
 > A robust WebSocket server for Vercel users and beyond!
 
+[![Node.js CI](https://github.com/bryanthaboi/boisclubsocketserver/actions/workflows/node.js.yml/badge.svg)](https://github.com/bryanthaboi/boisclubsocketserver/actions/workflows/node.js.yml)
+
 [![Vercel](https://img.shields.io/badge/vercel-%23000000.svg?style=flat&logo=vercel&logoColor=white)](https://vercel.com/)
 [![Heroku](https://img.shields.io/badge/heroku-%23430098.svg?style=flat&logo=heroku&logoColor=white)](https://www.heroku.com/)
 
