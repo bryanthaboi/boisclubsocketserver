@@ -222,4 +222,4 @@ WebSocket, Vercel, Real-time, Node.js, Express, Heroku, Bugsnag, Winston, pnpm, 
 
 ---
 
-Made with ❤️ by the BryanThaBoi
+Made with ❤️ by BryanThaBoi
