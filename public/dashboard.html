@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>BC Socket Dashboard</title>
+		<script src="https://cdn.tailwindcss.com"></script>
+	</head>
+	<body class="bg-gray-100 min-h-screen">
+		<div class="container mx-auto px-4 py-8">
+			<h1 class="text-3xl font-bold mb-8">BC Socket Dashboard</h1>
+			<div class="bg-white shadow rounded-lg p-6">
+				<h2 class="text-xl font-semibold mb-4">
+					Connected Clients: <span id="clientCount">0</span>
+				</h2>
+				<ul id="clientList" class="space-y-2"></ul>
+			</div>
+		</div>
+		<script>
+			const authToken = localStorage.getItem("authToken");
+			if (!authToken) {
+				window.location.href = "/login";
+			}
+
+			const clientCount = document.getElementById("clientCount");
+			const clientList = document.getElementById("clientList");
+
+			const socket = new WebSocket(`ws://${window.location.host}`);
+
+			socket.onopen = () => {
+				console.log("Connected to WebSocket");
+				socket.send(JSON.stringify({ type: "identify_dashboard" }));
+			};
+
+			socket.onmessage = (event) => {
+				const data = JSON.parse(event.data);
+				if (data.type === "dashboard_update") {
+					updateDashboard(data);
+				}
+			};
+
+			function updateDashboard(data) {
+				clientCount.textContent = data.count;
+				clientList.innerHTML = data.clients
+					.map(
+						(client) => `
+                <li class="bg-gray-50 p-3 rounded">
+                    <span class="font-medium">${client}</span>
+                </li>
+            `
+					)
+					.join("");
+			}
+
+			// Initial data fetch
+			fetch("/api/clients", {
+				headers: {
+					Authorization: `Bearer ${authToken}`,
+				},
+			})
+				.then((response) => response.json())
+				.then(updateDashboard);
+		</script>
+	</body>
+</html>

@@ -1,6 +1,6 @@
-# 🚀 Boi's Club Socket Server
+# 🚀 BC Socket Server
 
-> A robust WebSocket server for Vercel users and beyond!
+> A robust WebSocket server for Vercel users and beyond, now with a real-time dashboard!
 
 [![Node.js CI](https://github.com/bryanthaboi/boisclubsocketserver/actions/workflows/node.js.yml/badge.svg)](https://github.com/bryanthaboi/boisclubsocketserver/actions/workflows/node.js.yml)
 
@@ -21,13 +21,15 @@
 ![Jest](https://img.shields.io/badge/jest-%5E29.7.0-brightgreen)
 ![Axios](https://img.shields.io/badge/axios-%5E1.7.2-brightgreen)
 
-## 🌟 Why Boi's Club Socket Server?
+## 🌟 Why BC Socket Server?
 
-Vercel doesn't support WebSockets, but that shouldn't stop you from adding real-time functionality to your applications! This WebSocket server is designed to be deployed on platforms that support WebSockets (like Heroku), complementing your Vercel deployments and bringing the power of real-time communication to your projects.
+Vercel doesn't support WebSockets, but that shouldn't stop you from adding real-time functionality to your applications! This WebSocket server is designed to be deployed on platforms that support WebSockets (like Heroku), complementing your Vercel deployments and bringing the power of real-time communication to your projects. Also it's called BC Socket Server because I am BryanThaBoi, and I call my network the Boi's Club. It's not a gender thing, don't worry.
 
 ## ✨ Features
 
 - 🔌 Robust WebSocket server using Node.js and Express
+- 📊 Real-time dashboard for monitoring connected clients
+- 🧪 Comprehensive Jest test coverage
 - 🐞 Optional Bugsnag integration for error tracking
 - 📝 Winston logger for comprehensive logging
 - 🔒 Simple authentication middleware for specific routes
@@ -70,12 +72,42 @@ Vercel doesn't support WebSockets, but that shouldn't stop you from adding real-
    pnpm start
    ```
 
+## 🧪 Running Tests
+
+Our project is fully covered with Jest tests. To run the tests:
+
+```bash
+pnpm test
+```
+
+This will run all the tests in the `__tests__` directory.
+
+## 🔄 Continuous Integration
+
+I use GitHub Actions for continuous integration. On every commit, our CI pipeline runs all Jest tests to ensure code quality and prevent regressions. You can see the current status of our CI pipeline by checking the badge at the top of this README.
+
+## 📊 Dashboard
+
+The Boi's Club Socket Server comes with a real-time dashboard for monitoring connected clients.
+
+### Accessing the Dashboard
+
+1. Navigate to `/dashboard` in your browser.
+2. You'll be presented with a login page. Use the `AUTH_TOKEN` from your `.env` file to log in.
+3. Once authenticated, you'll be redirected to the dashboard page.
+
+### Dashboard Features
+
+- Real-time count of connected clients
+- List of connected client IDs
+- Automatic updates as clients connect and disconnect
+
 ## 🔧 Configuration
 
 ### Environment Variables
 
 - `PORT`: The port on which the server will run (default: 3000)
-- `AUTH_TOKEN`: A secret token for authenticating certain routes
+- `AUTH_TOKEN`: A secret token for authenticating certain routes and the dashboard
 - `BUGSNAG_API_KEY`: (Optional) Your Bugsnag API key for error tracking
 - `LOG_TO_FILE`: Set to "true" to enable file logging
 - `TO_CLIENT_TYPE`: Message type for messages sent to clients
@@ -83,7 +115,7 @@ Vercel doesn't support WebSockets, but that shouldn't stop you from adding real-
 
 ## 🔒 Authentication
 
-The server includes a simple authentication middleware for specific routes. To use a protected route, include the `AUTH_TOKEN` in the Authorization header:
+The server includes a simple authentication middleware for specific routes and the dashboard. To use a protected route, include the `AUTH_TOKEN` in the Authorization header:
 
 ```
 Authorization: Bearer YOUR_AUTH_TOKEN
@@ -206,7 +238,7 @@ This project is licensed under the MIT License - see the [LICENSE](https://opens
 
 ## 💖 Why pnpm?
 
-We recommend using [pnpm](https://pnpm.io/) for this project. pnpm is faster, more efficient, and uses less disk space compared to npm or Yarn. It creates a non-flat `node_modules` structure, which leads to:
+I recommend using [pnpm](https://pnpm.io/) for this project. pnpm is faster, more efficient, and uses less disk space compared to npm or Yarn. It creates a non-flat `node_modules` structure, which leads to:
 
 - Saved disk space
 - Boosted installation speed
@@ -220,7 +252,7 @@ npm install -g pnpm
 
 ## 🌐 Keywords
 
-WebSocket, Vercel, Real-time, Node.js, Express, Heroku, Bugsnag, Winston, pnpm, UUID, Authentication
+WebSocket, Vercel, Real-time, Node.js, Express, Heroku, Bugsnag, Winston, pnpm, UUID, Authentication, Dashboard, Jest, Testing
 
 ---
 

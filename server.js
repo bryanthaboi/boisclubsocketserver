@@ -6,6 +6,8 @@ const url = require("url");
 const { validate } = require("uuid");
 const winston = require("winston");
 const crypto = require("crypto");
+const path = require("path");
+const cors = require("cors");
 
 // Initialize Express app
 const app = express();
@@ -16,8 +18,11 @@ const socketMessageTypes = {
 	SERVER: process.env.FROM_SERVER_TYPE,
 };
 
+// Initialize HTTP server and WebSocket server variables
 let server;
 let wss;
+
+// Set up Winston transports for optional file logs
 let transportsArray = [new winston.transports.Console()];
 if (process.env.LOG_TO_FILE === "true") {
 	transportsArray.push(
@@ -27,6 +32,7 @@ if (process.env.LOG_TO_FILE === "true") {
 		new winston.transports.File({ filename: "combined.log" })
 	);
 }
+
 // Set up Winston logger
 const loggerConfig = {
 	level: "info",
@@ -36,6 +42,8 @@ const loggerConfig = {
 	),
 	transports: transportsArray,
 };
+
+const logger = winston.createLogger(loggerConfig);
 
 // Initialize Bugsnag if API key is provided
 let Bugsnag;
@@ -48,13 +56,10 @@ if (process.env.BUGSNAG_API_KEY) {
 		apiKey: process.env.BUGSNAG_API_KEY,
 		plugins: [BugsnagPluginExpress],
 	});
-	console.log("Bugsnag started");
-	// Use Bugsnag's Express middleware
+	logger.info("Bugsnag started");
 	middleware = Bugsnag.getPlugin("express");
 	app.use(middleware.requestHandler);
 }
-
-const logger = winston.createLogger(loggerConfig);
 
 // Simple in-memory storage for connected clients
 const clients = new Map();
@@ -64,7 +69,7 @@ const authenticate = (req, res, next) => {
 	const authHeader = req.headers.authorization;
 	if (authHeader) {
 		const token = authHeader.split(" ")[1];
-		if (token === process.env.AUTH_TOKEN) {
+		if (token == process.env.AUTH_TOKEN) {
 			next();
 		} else {
 			res.sendStatus(403);
@@ -75,12 +80,26 @@ const authenticate = (req, res, next) => {
 };
 
 // Express routes
+app.use(express.static(path.join(__dirname, "public")));
+
 app.get("/", (req, res) => {
 	res.send("WebSocket server is running");
 });
 
-app.get("/clients", authenticate, (req, res) => {
-	res.json({ connectedClients: clients.size });
+// Login page route
+app.get("/dashboard", cors(), (req, res) => {
+	res.sendFile(path.join(__dirname, "public", "login.html"));
+});
+
+// Apply authentication only to specific routes
+app.get("/dashboardPage", authenticate, cors(), (req, res) => {
+	res.sendFile(path.join(__dirname, "public", "dashboard.html"));
+});
+
+// Clients route for ingest into dashboard
+app.get("/api/clients", authenticate, cors(), (req, res) => {
+	const clientList = Array.from(clients.values());
+	res.json({ count: clients.size, clients: clientList });
 });
 
 // Error handling middleware
@@ -92,9 +111,9 @@ app.use((err, req, res, next) => {
 
 // Catch-all middleware for unhandled routes
 app.use((req, res) => {
-	const error = new Error(`Not Found - ${req.originalUrl}`);
+	const error = new Error(`Unhandled route: ${req.originalUrl}`);
 	error.status = 404;
-	logger.error("Unhandled route:", error.message);
+	logger.error("Unhandled route:", `${req.originalUrl}`);
 	if (Bugsnag) {
 		Bugsnag.notify(error, {
 			severity: "warning",
@@ -104,20 +123,36 @@ app.use((req, res) => {
 	res.status(500).send("Internal Server Error");
 });
 
-// Start the server
+// Generate a random string for anonymous client UUID
 const generateRandomString = () => {
 	return "anon-" + crypto.randomBytes(10).toString("hex");
 };
 
+// Start the server
 const startServer = (port) => {
 	return new Promise((resolve) => {
 		server = http.createServer(app);
 
 		wss = new WebSocket.Server({ server: server });
+		const sendDashboardUpdate = () => {
+			const clientList = Array.from(clients.values());
+			wss.clients.forEach((client) => {
+				if (client.isDashboard && client.readyState === WebSocket.OPEN) {
+					client.send(
+						JSON.stringify({
+							type: "dashboard_update",
+							count: clients.size,
+							clients: clientList,
+						})
+					);
+				}
+			});
+		};
 
 		// WebSocket connection handler
 		wss.on("connection", (ws, req) => {
 			try {
+				sendDashboardUpdate();
 				const pathname = url.parse(req.url).pathname;
 				let clientId;
 
@@ -135,45 +170,43 @@ const startServer = (port) => {
 				clients.set(ws, clientId);
 
 				logger.info(`Client connected: ${clientId}`);
-				console.log(`Client connected: ${clientId}`);
 
 				ws.on("message", (message) => {
-					const messageString = message.toString();
-
-					wss.clients.forEach((client) => {
-						if (client !== ws && client.readyState === WebSocket.OPEN) {
-							let freshMessage = JSON.parse(messageString);
-
-							if (
-								freshMessage.type == socketMessageTypes.SERVER &&
-								freshMessage.uuid == clientId
-							) {
-								client.send(
-									JSON.stringify({
-										type: socketMessageTypes.CLIENT,
-										message: freshMessage.message,
-										uuid: freshMessage.uuid,
-									})
-								);
+					let freshMessage = JSON.parse(message.toString());
+					if (freshMessage.type === "identify_dashboard") {
+						ws.isDashboard = true;
+					} else {
+						wss.clients.forEach((client) => {
+							if (client !== ws && client.readyState === WebSocket.OPEN) {
+								if (
+									freshMessage.type == socketMessageTypes.SERVER &&
+									freshMessage.uuid == clientId
+								) {
+									client.send(
+										JSON.stringify({
+											type: socketMessageTypes.CLIENT,
+											message: freshMessage.message,
+											uuid: freshMessage.uuid,
+										})
+									);
+								}
 							}
-						}
-					});
+						});
+					}
 				});
 
 				ws.on("close", () => {
 					logger.info(`Client disconnected: ${clientId}`);
-					console.log(`Client disconnected: ${clientId}`);
 					clients.delete(ws);
+					sendDashboardUpdate();
 				});
 
 				ws.on("error", (error) => {
 					logger.error(`WebSocket error for client ${clientId}:`, error);
-					console.error(`WebSocket error for client ${clientId}:`, error);
 					if (Bugsnag) Bugsnag.notify(error);
 				});
 			} catch (error) {
 				logger.error("Error in WebSocket connection:", error);
-				console.error("Error in WebSocket connection:", error);
 				if (Bugsnag) Bugsnag.notify(error);
 			}
 		});
@@ -183,9 +216,7 @@ const startServer = (port) => {
 			const wsUrl = `ws://${
 				address.address === "::" ? "localhost" : address.address
 			}:${address.port}`;
-			console.log(`Server running on port ${address.port}`);
-			console.log(`WebSocket URL: ${wsUrl} or ${wsUrl}/uuid/{uuid}`);
-			logger.info(`Server started`, { port: address.port, wsUrl: wsUrl });
+			logger.info(`WebSocket URL: ${wsUrl} or ${wsUrl}/uuid/{uuid}`);
 			resolve(server);
 		});
 	});
@@ -195,17 +226,17 @@ const startServer = (port) => {
 const stopServer = () => {
 	return new Promise((resolve) => {
 		if (wss) {
-			console.log("Closing WebSocket connections...");
+			logger.info("Closing WebSocket connections...");
 			wss.clients.forEach((client) => {
 				if (client.readyState === WebSocket.OPEN) {
 					client.close();
 				}
 			});
 			wss.close(() => {
-				console.log("WebSocket server closed");
+				logger.info("WebSocket server closed");
 				if (server) {
 					server.close(() => {
-						console.log("HTTP server closed");
+						logger.info("HTTP server closed");
 						resolve();
 					});
 				} else {
@@ -214,7 +245,7 @@ const stopServer = () => {
 			});
 		} else if (server) {
 			server.close(() => {
-				console.log("HTTP server closed");
+				logger.info("HTTP server closed");
 				resolve();
 			});
 		} else {
@@ -226,7 +257,6 @@ const stopServer = () => {
 if (Bugsnag) app.use(middleware.errorHandler);
 
 process.on("SIGTERM", async () => {
-	console.log(`Server turning off.`);
 	logger.info("SIGTERM signal received: closing HTTP server");
 	await stopServer();
 	process.exit(0);
