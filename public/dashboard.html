@@ -46,15 +46,6 @@
 					)
 					.join("");
 			}
-
-			// Initial data fetch
-			fetch("/api/clients", {
-				headers: {
-					Authorization: `Bearer ${authToken}`,
-				},
-			})
-				.then((response) => response.json())
-				.then(updateDashboard);
 		</script>
 	</body>
 </html>
